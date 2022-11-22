@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <style>
+
+        .noselect {
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none; /* Safari */
+            -khtml-user-select: none; /* Konqueror HTML */
+            -moz-user-select: none; /* Old versions of Firefox */
+            -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+            supported by Chrome, Edge, Opera and Firefox */
+        }
+
+        .q0-1 { fill:rgb(247,251,255); }
+        .q1-1 { fill:rgb(222,235,245); }
+        .q2-1 { fill:rgb(198,220,235); }
+        .q3-1 { fill:rgb(176,205,225); }
+        .q4-1 { fill:rgb(154,190,215); }
+        .q5-1 { fill:rgb(132,175,205); }
+        .q6-1 { fill:rgb(110,150,195); }
+        .q7-1 { fill:rgb(90,125,185); }
+        .q8-1 { fill:rgb(70,100,175); }
+            
+        .q0-2 { fill:rgb(247,251,255); }
+        .q1-2 { fill:rgb(247,235,220); }
+        .q2-2 { fill:rgb(239,219,190); }
+        .q3-2 { fill:rgb(225,180,130); }
+        .q4-2 { fill:rgb(214,174,107); }
+        .q5-2 { fill:rgb(198,146,75); }
+        .q6-2 { fill:rgb(181,125,50); }
+        .q7-2 { fill:rgb(130,70,25); }
+        .q8-2 { fill:rgb(80,25,8); }
+            
+        </style>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+        <script src="https://unpkg.com/topojson@3"></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    </head>
+    <body>
+    <h1>Washington Population Density</h1>
+    <script>
+    var width = 960,
+        height = 500;
+
+    const tooltip = d3.select("body")
+            .append("div")
+            .attr("class", "tooltip")
+            .style("border-radius", "5px")
+            .style("background-color", "white")
+            .style("padding", "10px")
+            .style("fill", "black")
+            .style("text-align", "center")
+            .style("position", "absolute")
+            .style("pointer-events", "none")
+    
+    
+    let rateById = {};
+
+    var quantize = d3.scaleThreshold()
+        .domain([1, 10, 25, 50, 80, 150, 300, 500, 1500])
+        .range(d3.range(9).map(function(i) { return "q" + i + "-1"; }));
+        
+    var projection = d3.geoMercator()
+        .center([60, 47])
+        .scale(4000)
+        .rotate([-180,0]);
+
+    var svg = d3.select("body").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+        
+    var x = d3.scaleSqrt()
+        .domain([0, 4500])
+        .rangeRound([440, 950]);
+        
+    var path = d3.geoPath(projection);
+
+    var g = svg.append("g")
+        .attr("transform", "translate(0,40)");
+        
+    bounds = true;
+    theme = 1;
+    var theming = g.append("g")
+        .attr("x", width - 350)
+        .attr("y", 100)
+    
+    theming.append("rect")
+        .attr("class", "theming")
+        .attr("stroke", "black")
+        .attr("width", 200)
+        .attr("height", 30)
+        .attr("x", width - 250)
+        .attr("y", 120)
+        .on("mouseover", ()=> {d3.select(".theming").attr("fill", "rgb(200, 200, 200)")})
+        .on("mouseup", ()=> {d3.select(".theming").attr("fill", "white")})
+        .on("mouseleave", ()=>{d3.select(".theming").attr("fill", "white")})
+        .on("mousedown", ()=> {d3.select(".theming").attr("fill", "rgb(200, 50, 50)");
+                               if(theme == 1) {
+                                    for(var i = 0; i < 9; i++) {
+                                        d3.selectAll(".q" + i + "-1").attr("class", "q" + i + "-2");
+                                    }
+                                   theme = 2;
+                               }
+                               else{for(var i = 0; i < 9; i++) {
+                                        d3.selectAll(".q" + i + "-2").attr("class", "q" + i + "-1");
+                                    }
+                                    theme = 1;
+           }})
+        
+    theming.append("text")
+        .attr("fill", "black")
+        .style("font-size", "16px")
+        .text("Change Color Scheme")
+        .attr("x", width - 150)
+        .attr("y", 140)
+        .attr("class", "noselect")
+        .style("pointer-events", "none")
+        
+    var county_boundaries = g.append("g")
+        .attr("x", width - 350)
+        .attr("y", 100)
+    
+    county_boundaries.append("rect")
+        .attr("class", "boundaries")
+        .attr("stroke", "black")
+        .attr("width", 200)
+        .attr("height", 30)
+        .attr("x", width - 250)
+        .attr("y", 80)
+        .on("mouseover", ()=> {d3.select(".boundaries").attr("fill", "rgb(200, 200, 200)")})
+        .on("mouseup", ()=> {d3.select(".boundaries").attr("fill", "white")})
+        .on("mouseleave", ()=>{d3.select(".boundaries").attr("fill", "white")})
+        .on("mousedown", ()=> {d3.select(".boundaries").attr("fill", "rgb(200, 50, 50)");
+                               if(bounds) {bounds = false; d3.selectAll(".counties path").attr("stroke", "none")}
+                               else{bounds = true; d3.selectAll(".counties path").attr("stroke", "black")}})
+        
+    county_boundaries.append("text")
+        .attr("fill", "black")
+        .style("font-size", "16px")
+        .text("Toggle County Boundary")
+        .attr("x", width - 150)
+        .attr("y", 100)
+        .attr("class", "noselect")
+        .style("pointer-events", "none")
+        
+    g.selectAll("rect")
+      .data(quantize.range().map(function(d) {
+          d = quantize.invertExtent(d);
+          if (d[0] == null) d[0] = x.domain()[0];
+          if (d[1] == null) d[1] = x.domain()[1];
+          return d;
+        }))
+      .enter().append("rect")
+        .attr("height", 8)
+        .attr("x", function(d) { return x(d[0]); })
+        .attr("width", function(d) { return x(d[1]) - x(d[0]); })
+        .attr("class", function(d) { return quantize(d[0]); });
+        
+    g.append("text")
+        .attr("class", "caption noselect")
+        .attr("x", x.range()[0])
+        .attr("y", -6)
+        .attr("fill", "#000")
+        .attr("text-anchor", "start")
+        .attr("font-weight", "bold")
+        .text("Population per square mile");
+        
+    g.call(d3.axisBottom(x)
+        .tickSize(13)
+        .tickValues(quantize.domain()))
+        .attr("class", "noselect")
+        .select(".domain")
+        .remove();
+
+    promises = [d3.json("us-10m.json"), d3.csv("Population-Density By County.csv")];
+    
+    let info = {}
+        
+    const mousemove_tooltip = function(event, d) {
+        tooltip
+            .html(info[d.id]['GCT_STUB.display-label'] + "<br>County ID: " + info[d.id]['GCT_STUB.target-geo-id2'] + "<br>Population per square mile: " + info[d.id]['Density per square mile of land area'])
+            .style('opacity', 1)
+            .style("left", (event.x + 20) + "px")
+            .style("top", (event.y + window.scrollY - 20) + "px")
+    }
+
+    const mouseleave_tooltip = function(event, d) {
+        tooltip
+            .style('opacity', 0)
+    }
+        
+    Promise.all(promises).then(function(files) {
+        for(var i = 0; i < files[1].length; i++) {
+            if(files[1][i]['GEO.display-label'] == 'Washington') {
+                rateById[Number(files[1][i]['GCT_STUB.target-geo-id2'])] = Number(files[1][i]['Density per square mile of land area']);
+                info[Number(files[1][i]['GCT_STUB.target-geo-id2'])] = files[1][i];
+                
+            }
+        }
+        
+//        console.log(files[1][0])
+        
+        let g2 = g.append("g")
+            .attr("class", "counties")
+            .selectAll("path")
+            .data(topojson.feature(files[0], files[0].objects.counties).features)
+            .enter().append("path")
+            .filter(function(d) {return d.id in rateById})
+            .attr("class", function(d) { return quantize(rateById[d.id]); })
+            .attr("d", path)
+            .attr("stroke", "black")
+            .attr("id", function(d) {return d.id})
+            .on("mouseover", mousemove_tooltip)
+            .on("mousemove", mousemove_tooltip)
+            .on('mouseleave', mouseleave_tooltip)
+        });
+        
+
+    </script>
+        <h4>Created by Nick Janes</h4>
+        <h4>Instructed by Suresh Lodha</h4>
+        <h4>CSE 163: Data Programming for Visualization</h4>
+        <h4>Fall 2022</h4>
+        <ul> <b>Files Included</b>
+            <li>index.html</li>
+            <li>us-10m.json</li>
+            <li>Population-Density By County.csv</li>
+        </ul>
+        <ul> <b>References</b>
+            <li>Data taken from https://github.com/camillol/cs424p3/blob/master/data/Population-Density%20By%20County.csv</li>
+            <li>https://bl.ocks.org/mbostock/5562380</li>
+        </ul>
+    </body>
+</html>
